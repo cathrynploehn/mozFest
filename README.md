@@ -1,2 +1,1 @@
-# mozFest
- 
+secret project
