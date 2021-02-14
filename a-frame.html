@@ -1,0 +1,184 @@
+<!DOCTYPE html><html lang="en">
+  <head>
+    <!-- <link rel="stylesheet" type="text/css" href="style.css"> -->
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://unpkg.com/aframe-environment-component/dist/aframe-environment-component.min.js"></script>
+    <!-- <script src="https://unpkg.com/aframe-troika-text/dist/aframe-troika-text.min.js"></script> -->
+    <!-- <script src="https://d3js.org/d3.v6.min.js"></script> -->
+  </head>
+  <body>
+    <script>
+      var defaultMaterial = new THREE.MeshStandardMaterial({color: 0xffffff});
+      AFRAME.registerComponent('flower', {
+        schema: {
+          position: {default: {x: 0, y: 0, z:0}, type: 'vec3'},
+          index: {default: 0, type: 'number' }
+        },
+
+        init: function () {
+          // Create geometry.
+          this.geometry = new THREE.BoxBufferGeometry(.03, .03, .03);
+          this.material = defaultMaterial;
+
+          // Create mesh.
+          this.mesh = new THREE.Mesh(this.geometry, this.material);
+
+          // Set mesh on entity.
+          this.el.setObject3D('mesh', this.mesh);
+          // console.log(this.data.position)
+          this.el.object3D.position.set(this.data.position.x, this.data.position.y, this.data.position.z + (noise(this.data.index) * 1) - 0.5);
+          // this.el.object3D.rotation.y ;
+        }
+      });
+      AFRAME.registerComponent('trelis', {
+        schema: {
+          numArch: {type: 'number', default: 0}
+        },
+
+        init: function () {
+          const circleRadius = .005;
+          const group = new THREE.Group();
+          const extrudeSettings = { amount: 3, bevelEnabled: false };
+          const rotationAmount = ((Math.PI * 2) / this.data.numArch);
+
+          for(var i = 0; i < this.data.numArch; i++){
+            var circleShape = new THREE.Shape()
+              .moveTo( 0, circleRadius )
+              .quadraticCurveTo( circleRadius, circleRadius, circleRadius, 0 )
+              .quadraticCurveTo( circleRadius, - circleRadius, 0, - circleRadius )
+              .quadraticCurveTo( - circleRadius, - circleRadius, - circleRadius, 0 )
+              .quadraticCurveTo( - circleRadius, circleRadius, 0, circleRadius );
+
+            var geometry = new THREE.ExtrudeGeometry( circleShape, extrudeSettings );
+            var mesh = new THREE.Mesh( geometry, defaultMaterial );
+
+            mesh.rotation.y = rotationAmount * i;
+            mesh.position.set(0, .01, 0);
+
+            if(i > 0){
+              var geometry = new THREE.TorusGeometry( 2 / (i) + .5, 0.005, 8, this.data.numArch);
+              var torus = new THREE.Mesh( geometry, defaultMaterial );
+              torus.rotation.x = Math.PI / 2;
+              torus.position.set(0, .01, 0);
+              group.add( torus );
+            }
+
+            group.add( mesh );
+
+          }
+          var geometry = new THREE.TorusGeometry( .6, 0.005, 8, this.data.numArch);
+          var torus = new THREE.Mesh( geometry, defaultMaterial );
+          torus.rotation.x = Math.PI / 2;
+          torus.position.set(0, 2.5, 0);
+          group.add( torus );
+          this.el.setObject3D('mesh', group);
+        }
+      });
+      AFRAME.registerComponent('scale-on-mouseenter', {
+        schema: {
+          to: {default: {x: 2.5, y: 2.5, z:2.5}, type: 'vec3'}
+        },
+
+        init: function () {
+          var data = this.data;
+          var el = this.el;
+          this.el.addEventListener('click', function () {
+            el.object3D.scale.copy(data.to);
+          });
+        }
+      });
+      AFRAME.registerComponent('arch', {
+        schema: {
+          rotation: {type: 'number', default: 0},
+          flowers: {type: 'array', default:[]}
+        },
+        init: function () {
+          var h = 2 + (.1 * Math.random());
+          var radius = 2.5;
+
+          const curve = new THREE.EllipseCurve(
+          	0,  0,            // ax, aY
+          	radius, radius,           // xRadius, yRadius
+          	0,  Math.PI/2,  // aStartAngle, aEndAngle
+          	false,            // aClockwise
+          	0                // aRotation
+          );
+
+          const min = new Vector3(-1, -1, -1);
+          const max = new Vector3(1, 1, 1);
+          var tree = new SPARSEOCTREE.PointOctree(min, max)
+
+          var points = curve.getPoints( 100 );
+          for(var i = 0; i < points.length; i++){
+            points[i].z = noise(i/5)/10 + .6;
+            var v = new Vector3(points[i].x, points[i].y, points[i].z);
+            tree.insert(v,{data: 0})
+          }
+          // console.log(tree.pointCount)
+
+          this.geometry = new THREE.BufferGeometry().setFromPoints( points );
+          this.material = new THREE.LineBasicMaterial( { color : 0xffffff } );
+          const ellipse = new THREE.Line( this.geometry, this.material );
+          this.el.setObject3D('line', ellipse);
+
+
+
+          for(var i = 0; i < this.data.flowers.length; i++){
+            var randomPoint = points[Math.floor(Math.random() * 80)]
+            var flowerEl = document.createElement('a-entity');
+            var sch = {position: randomPoint, rotation: this.data.rotation, index: i};
+
+            flowerEl.setAttribute('flower', sch);
+            this.el.appendChild(flowerEl);
+          }
+          this.el.object3D.rotation.y = this.data.rotation;
+
+        },
+      });
+    </script>
+
+
+
+    <a-scene  renderer="antialias: true">
+      <a-sky fog="type: linear; color: #000; far: 5; near: 0" color="#000" ></a-sky>
+      <!-- fog="type: linear; color: #000; far: 15; near: 0"-->
+      <a-assets>
+        <!-- <img id="groundTexture" src="https://cdn.aframe.io/a-painter/images/floor.jpg"> -->
+        <img id="blocks" src ="blocks.jpg"/>
+        <img id="stars" src ="stars.jpg"/>
+      </a-assets>
+
+      <a-light type="ambient" intensity="1" color="white"></a-light>
+      <!-- <a-plane material="color: #000;" rotation="-90 0 0" width="30" height="30"></a-plane> -->
+      <!-- <a-plane material="color: #000;  repeat: 50 100;" rotation="-90 0 0" width="70" height="70"></a-plane> -->
+      <a-camera>
+        <a-cursor></a-cursor>
+      </a-camera>
+    </a-scene>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.2.0/p5.min.js" integrity="sha512-b/htz6gIyFi3dwSoZ0Uv3cuv3Ony7EeKkacgrcVg8CMzu90n777qveu0PBcbZUA7TzyENGtU+qZRuFAkfqgyoQ==" crossorigin="anonymous"></script>
+    <script src="math-ds.min.js"></script>
+    <script src="sparse-octree.min.js"></script>
+    <script src="search.js"></script>
+    <script src="sketch.js"></script>
+    <script>
+//     import { Vector3 } from "./math-ds.min.js";
+      var Vector3 = MATHDS.Vector3;
+      var tre = new SPARSEOCTREE.PointOctree()
+      console.log(tre.insert)
+
+      var observations = [];
+      function setup(){
+
+        for(var k = 0; k < 1000; k++){
+          observations.push({val: k});
+        }
+        drawArches();
+      }
+
+      // getData = search();
+      // getData.then(() => { console.log("search done!"); drawArches();  })
+
+    </script>
+  </body>
+</html>
