@@ -1,7 +1,7 @@
 var drawArches = () => {
 
   var sceneEl = document.querySelector('a-scene');
-  var numArch = 12;
+  var numArch = 13;
   var rotationLvl = (Math.PI * 2) / numArch;
 
   for(var i = 0; i < numArch; i++){
