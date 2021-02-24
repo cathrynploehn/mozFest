@@ -11,18 +11,13 @@ AFRAME.registerComponent('card', {
     var el = this.el;
     var self = this;
     // Create geometry.
-    // this.geometry = new THREE.BoxBufferGeometry(.1, .2, .003);
     this.geometry = new THREE.PlaneGeometry(.1, .2, 32)
     this.material = new THREE.MeshStandardMaterial({color: 0xffffff, side: THREE.DoubleSide});
 
     // Create mesh.
     this.mesh = new THREE.Mesh(this.geometry);
-
-    // Set mesh on entity.
-    this.el.setObject3D('mesh', this.mesh);
-    // console.log(this.data.position)
-    // this.el.object3D.position.set(this.data.position.x, this.data.position.y - .1, this.data.position.z + (noise(this.data.index) * 1) - .75);
-    this.el.object3D.position.set(this.data.position.x +.005, this.data.position.y - .25, this.data.position.z);
+    el.setObject3D('mesh', this.mesh);
+    el.object3D.position.set(this.data.position.x +.005, this.data.position.y - .25, this.data.position.z);
 
     // iNaturalist doesn't allow crossorigin = anonymous/CORS, so we can't use them as a texture
     // https://stackoverflow.com/questions/34826748/issue-with-crossorigin-anonymous-failing-to-load-images
@@ -34,16 +29,17 @@ AFRAME.registerComponent('card', {
     //   this.el.setAttribute('asset-on-demand', schema)
     // }
 
-    this.el.object3D.lookAt(0, 2, 0)
+    el.object3D.lookAt(0, 2, 0)
     // this.el.object3D.rotation.y ;
-    this.el.addEventListener('mouseenter', function () {
+    el.addEventListener('mouseenter', function () {
       el.object3D.scale.copy({x: 2.5, y: 2.5, z:2.5});
     });
-    this.el.addEventListener('mouseleave', function () {
+    el.addEventListener('mouseleave', function () {
       el.object3D.scale.copy({x: 1, y: 1, z:1});
     });
     this.el.addEventListener('click', function () {
       displayObservationCard(self.data.index);
+      el.setAttribute('animation', 'property: position; to: 0 0 0');
     });
   }
 });
